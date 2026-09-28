@@ -4,6 +4,7 @@
 #include <random>
 #include <chrono>
 #include <algorithm>
+#include <iomanip>
 
 #include <fftw3.h>
 
@@ -52,42 +53,24 @@ Result summarize(std::vector<double> times)
 }
 
 
-void printResult(
-    const std::string& name,
-    const Result& result
-)
-{
-    std::cout << name << "\n";
-
-    std::cout
-        << "  avg : "
-        << result.avg
-        << " ms\n";
-
-    std::cout
-        << "  p50 : "
-        << result.p50
-        << " ms\n";
-
-    std::cout
-        << "  p95 : "
-        << result.p95
-        << " ms\n\n";
-}
-
-
 // ============================================================
 // Legacy IFFT
 //
-// 每次调用都：
-// allocate
-// create plan
-// execute
-// destroy
-// free
+// 每次调用都完整执行：
+//
+// allocate buffer
+// -> copy input
+// -> create plan
+// -> execute
+// -> copy + normalize output
+// -> destroy plan
+// -> free buffer
+//
+// 与 OfdmEngine::modulate() 保持相同计算语义。
 // ============================================================
 
-void legacyIFFT(
+std::vector<std::complex<double>>
+legacyIFFT(
     const std::vector<double>& symbols
 )
 {
@@ -96,6 +79,7 @@ void legacyIFFT(
             symbols.size()
         );
 
+
     fftw_complex* input =
         fftw_alloc_complex(N);
 
@@ -103,6 +87,16 @@ void legacyIFFT(
         fftw_alloc_complex(N);
 
 
+    if (input == nullptr ||
+        output == nullptr)
+    {
+        throw std::runtime_error(
+            "Failed to allocate FFTW buffers."
+        );
+    }
+
+
+    // 输入拷贝
     for (int i = 0; i < N; ++i)
     {
         input[i][0] = symbols[i];
@@ -110,6 +104,7 @@ void legacyIFFT(
     }
 
 
+    // 每次重新创建 Plan
     fftw_plan plan =
         fftw_plan_dft_1d(
             N,
@@ -120,29 +115,60 @@ void legacyIFFT(
         );
 
 
+    if (plan == nullptr)
+    {
+        fftw_free(input);
+        fftw_free(output);
+
+        throw std::runtime_error(
+            "Failed to create FFTW plan."
+        );
+    }
+
+
+    // 执行 IFFT
     fftw_execute(plan);
 
 
+    // 输出拷贝 + 归一化
+    std::vector<std::complex<double>>
+        result(N);
+
+
+    for (int i = 0; i < N; ++i)
+    {
+        result[i] =
+            std::complex<double>(
+                output[i][0] / N,
+                output[i][1] / N
+            );
+    }
+
+
+    // 释放资源
     fftw_destroy_plan(plan);
 
     fftw_free(input);
-
     fftw_free(output);
+
+
+    return result;
 }
 
 
-int main()
+// ============================================================
+// 单个 workload 的 A/B Benchmark
+// ============================================================
+
+void runBenchmark(
+    int N,
+    int warmupIterations,
+    int measuredIterations
+)
 {
-    const int N = 100000;
-
-    const int warmupIterations = 10;
-
-    const int measuredIterations = 100;
-
-
-    // ========================================================
+    // --------------------------------------------------------
     // 固定输入
-    // ========================================================
+    // --------------------------------------------------------
 
     std::vector<double> symbols(N);
 
@@ -161,31 +187,40 @@ int main()
     }
 
 
-    // ========================================================
+    // --------------------------------------------------------
     // Optimized Engine
-    // ========================================================
+    //
+    // Buffer 和 Plan 在这里初始化一次
+    // --------------------------------------------------------
 
     OfdmEngine engine(N);
 
 
-    // ========================================================
+    std::vector<std::complex<double>>
+        legacyOutput;
+
+    std::vector<std::complex<double>>
+        optimizedOutput;
+
+
+    // --------------------------------------------------------
     // Warm-up
-    // ========================================================
+    // --------------------------------------------------------
 
     for (int i = 0;
          i < warmupIterations;
          ++i)
     {
-        legacyIFFT(symbols);
+        legacyOutput =
+            legacyIFFT(symbols);
 
-        engine.modulate(symbols);
+        optimizedOutput =
+            engine.modulate(symbols);
     }
 
 
-    // ========================================================
-    // A/B Benchmark
-    //
-    // 每轮交替测试：
+    // --------------------------------------------------------
+    // 正式测量
     //
     // 偶数轮：
     // Legacy -> Optimized
@@ -193,8 +228,8 @@ int main()
     // 奇数轮：
     // Optimized -> Legacy
     //
-    // 避免固定测试顺序带来的偏差
-    // ========================================================
+    // 减少固定执行顺序造成的系统偏差
+    // --------------------------------------------------------
 
     std::vector<double> legacyTimes;
 
@@ -217,18 +252,23 @@ int main()
         if (i % 2 == 0)
         {
             // Legacy
-            auto startLegacy =
-                std::chrono::steady_clock::now();
-
-            legacyIFFT(symbols);
-
-            auto endLegacy =
+            auto legacyStart =
                 std::chrono::steady_clock::now();
 
 
-            std::chrono::duration<double, std::milli>
-                legacyElapsed =
-                    endLegacy - startLegacy;
+            legacyOutput =
+                legacyIFFT(symbols);
+
+
+            auto legacyEnd =
+                std::chrono::steady_clock::now();
+
+
+            std::chrono::duration<
+                double,
+                std::milli
+            > legacyElapsed =
+                legacyEnd - legacyStart;
 
 
             legacyTimes.push_back(
@@ -237,18 +277,24 @@ int main()
 
 
             // Optimized
-            auto startOptimized =
-                std::chrono::steady_clock::now();
-
-            engine.modulate(symbols);
-
-            auto endOptimized =
+            auto optimizedStart =
                 std::chrono::steady_clock::now();
 
 
-            std::chrono::duration<double, std::milli>
-                optimizedElapsed =
-                    endOptimized - startOptimized;
+            optimizedOutput =
+                engine.modulate(symbols);
+
+
+            auto optimizedEnd =
+                std::chrono::steady_clock::now();
+
+
+            std::chrono::duration<
+                double,
+                std::milli
+            > optimizedElapsed =
+                optimizedEnd -
+                optimizedStart;
 
 
             optimizedTimes.push_back(
@@ -258,18 +304,24 @@ int main()
         else
         {
             // Optimized
-            auto startOptimized =
-                std::chrono::steady_clock::now();
-
-            engine.modulate(symbols);
-
-            auto endOptimized =
+            auto optimizedStart =
                 std::chrono::steady_clock::now();
 
 
-            std::chrono::duration<double, std::milli>
-                optimizedElapsed =
-                    endOptimized - startOptimized;
+            optimizedOutput =
+                engine.modulate(symbols);
+
+
+            auto optimizedEnd =
+                std::chrono::steady_clock::now();
+
+
+            std::chrono::duration<
+                double,
+                std::milli
+            > optimizedElapsed =
+                optimizedEnd -
+                optimizedStart;
 
 
             optimizedTimes.push_back(
@@ -278,18 +330,23 @@ int main()
 
 
             // Legacy
-            auto startLegacy =
-                std::chrono::steady_clock::now();
-
-            legacyIFFT(symbols);
-
-            auto endLegacy =
+            auto legacyStart =
                 std::chrono::steady_clock::now();
 
 
-            std::chrono::duration<double, std::milli>
-                legacyElapsed =
-                    endLegacy - startLegacy;
+            legacyOutput =
+                legacyIFFT(symbols);
+
+
+            auto legacyEnd =
+                std::chrono::steady_clock::now();
+
+
+            std::chrono::duration<
+                double,
+                std::milli
+            > legacyElapsed =
+                legacyEnd - legacyStart;
 
 
             legacyTimes.push_back(
@@ -299,20 +356,41 @@ int main()
     }
 
 
-    // ========================================================
+    // --------------------------------------------------------
+    // 正确性检查
+    // --------------------------------------------------------
+
+    double maxDifference = 0.0;
+
+
+    for (int i = 0; i < N; ++i)
+    {
+        double difference =
+            std::abs(
+                legacyOutput[i]
+                -
+                optimizedOutput[i]
+            );
+
+
+        if (difference > maxDifference)
+        {
+            maxDifference =
+                difference;
+        }
+    }
+
+
+    // --------------------------------------------------------
     // 统计
-    // ========================================================
+    // --------------------------------------------------------
 
     Result legacyResult =
-        summarize(
-            legacyTimes
-        );
+        summarize(legacyTimes);
 
 
     Result optimizedResult =
-        summarize(
-            optimizedTimes
-        );
+        summarize(optimizedTimes);
 
 
     double speedup =
@@ -332,61 +410,100 @@ int main()
         * 100.0;
 
 
-    // ========================================================
-    // 输出
-    // ========================================================
+    // --------------------------------------------------------
+    // 输出一行
+    // --------------------------------------------------------
 
     std::cout
-        << "====================================\n";
-
-    std::cout
-        << "FFTW IFFT Microbenchmark\n";
-
-    std::cout
-        << "====================================\n";
-
-    std::cout
-        << "Data size: "
+        << std::left
+        << std::setw(12)
         << N
-        << "\n";
 
-    std::cout
-        << "Warm-up iterations: "
-        << warmupIterations
-        << "\n";
+        << std::setw(16)
+        << legacyResult.p50
 
-    std::cout
-        << "Measured iterations: "
-        << measuredIterations
-        << "\n";
+        << std::setw(18)
+        << optimizedResult.p50
 
-    std::cout
-        << "====================================\n\n";
-
-
-    printResult(
-        "Legacy IFFT",
-        legacyResult
-    );
-
-
-    printResult(
-        "Optimized IFFT",
-        optimizedResult
-    );
-
-
-    std::cout
-        << "P50 Speedup: "
+        << std::setw(12)
         << speedup
-        << "x\n";
+
+        << std::setw(16)
+        << reduction
+
+        << maxDifference
+
+        << "\n";
+}
+
+
+// ============================================================
+// main
+// ============================================================
+
+int main()
+{
+    std::cout
+        << "============================================================\n";
+
+    std::cout
+        << "FFTW IFFT Workload Scaling Benchmark\n";
+
+    std::cout
+        << "============================================================\n";
 
 
     std::cout
-        << "P50 Latency Reduction: "
-        << reduction
-        << "%\n";
+        << std::left
+        << std::setw(12)
+        << "Size"
 
+        << std::setw(16)
+        << "Legacy P50"
+
+        << std::setw(18)
+        << "Optimized P50"
+
+        << std::setw(12)
+        << "Speedup"
+
+        << std::setw(16)
+        << "Reduction(%)"
+
+        << "Max Error"
+
+        << "\n";
+
+
+    std::cout
+        << "------------------------------------------------------------"
+        << "----------------\n";
+
+
+    // 小 workload 多测一些
+    runBenchmark(
+    1024,       // 2^10
+    10,
+    200
+);
+
+runBenchmark(
+    16384,      // 2^14
+    10,
+    200
+);
+
+runBenchmark(
+    131072,     // 2^17
+    10,
+    100
+);
+
+runBenchmark(
+    1048576,    // 2^20
+    5,
+    30
+);
 
     return 0;
 }
