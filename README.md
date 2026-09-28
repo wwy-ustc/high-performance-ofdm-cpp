@@ -1,110 +1,285 @@
-# High Performance OFDM Signal Processing Engine
+# High Performance OFDM C++ Engine
 
-<p align="center">
+A high-performance OFDM signal processing pipeline implemented in modern C++17, focusing on **FFT acceleration, memory reuse, benchmarking methodology, and parallel execution analysis**.
 
-A modular C++17 signal processing engine with FFTW3 acceleration and benchmark-driven performance analysis.
-
-</p>
-
-<p align="center">
-
-<img src="https://img.shields.io/badge/C%2B%2B-17-blue">
-<img src="https://img.shields.io/badge/CMake-Build-green">
-<img src="https://img.shields.io/badge/Linux-Development-orange">
-<img src="https://img.shields.io/badge/FFTW3-FFT%2FIFFT-purple">
-
-</p>
-
-
-## Overview
-
-This project reconstructs a MATLAB-based OFDM encryption prototype into a modular C++17 computational pipeline.
-
-The goal is to explore the engineering transformation from algorithm prototypes to efficient and maintainable numerical computing systems.
-
-The project focuses on:
-
-- Modern C++ engineering
-- Numerical computation
-- Modular system design
-- Performance benchmarking
-- Optimization analysis
-
+This project is designed as a performance-oriented C++ system with emphasis on **HPC-style optimization techniques**, including FFTW plan reuse, workload scaling analysis, and multi-thread execution benchmarking.
 
 ---
 
-# Architecture
+# Overview
 
+This project implements an end-to-end OFDM processing pipeline:
 
-```mermaid
-graph TD
+```
+Input Bits
+    |
+    v
+BPSK Modulation
+    |
+    v
+Chaos-based Encryption
+    |
+    v
+OFDM Modulation
+    |
+    v
+FFTW IFFT Engine
+    |
+    v
+FFT Demodulation
+    |
+    v
+Decryption
+    |
+    v
+Bit Recovery
+```
 
-A[Input Bits]
+The system supports:
 
-A --> B[BPSK Modulation]
+- Complete OFDM modulation and demodulation
+- FFT/IFFT acceleration using FFTW3
+- Reusable FFT execution plans
+- Configurable multi-thread FFT execution
+- End-to-end performance benchmarking
+- Correctness verification
 
-B --> C[Chaos-based Encryption]
+---
 
-C --> D[OFDM IFFT]
+# Project Structure
 
-D --> E[Time-domain Complex Signal]
+```
+high-performance-ofdm-cpp/
 
-E --> F[OFDM FFT]
-
-F --> G[Recovered Frequency Symbols]
-
+├── include/
+│   ├── bpsk.hpp
+│   ├── encryption.hpp
+│   ├── logistic.hpp
+│   ├── ofdm.hpp
+│   └── benchmark.hpp
+│
+├── src/
+│   ├── bpsk.cpp
+│   ├── encryption.cpp
+│   ├── logistic.cpp
+│   ├── ofdm.cpp
+│   ├── benchmark.cpp
+│   └── main.cpp
+│
+├── benchmarks/
+│   ├── benchmark_pipeline.cpp
+│   ├── benchmark_fftw.cpp
+│   └── benchmark_fftw_threads.cpp
+│
+└── CMakeLists.txt
 ```
 
 ---
 
 # Features
 
-## Core Pipeline
+## Modern C++ Implementation
 
-- C++17 modular implementation
-- BPSK modulation
-- Logistic chaotic sequence generation
-- Chaos-based encryption
+- C++17
+- Modular CMake build system
+- Static library architecture
+- RAII-based FFT resource management
+
+Core modules:
+
+- BPSK modulation/demodulation
+- Chaos sequence generation
+- Encryption/decryption pipeline
 - OFDM modulation and demodulation
-- FFT/IFFT acceleration using FFTW3
-
-
-## Engineering Features
-
-- CMake-based build system
-- Linux development environment
-- Multi-file C++ architecture
-- Benchmark framework
-- Performance analysis workflow
-
+- FFTW optimized FFT engine
 
 ---
 
-# Project Structure
+# FFTW Optimization
 
+## FFTW Plan Reuse
+
+Repeated FFT plan creation introduces unnecessary initialization overhead.
+
+The project implements reusable FFTW execution plans and persistent buffers.
+
+Legacy workflow:
 
 ```
-high-performance-ofdm-cpp/
+Create FFT Plan
+        |
+        v
+Execute FFT
+        |
+        v
+Destroy Plan
+```
 
-├── include
-│   ├── bpsk.hpp
-│   ├── logistic.hpp
-│   ├── encryption.hpp
-│   ├── ofdm.hpp
-│   └── benchmark.hpp
-│
-├── src
-│   ├── main.cpp
-│   ├── bpsk.cpp
-│   ├── logistic.cpp
-│   ├── encryption.cpp
-│   ├── ofdm.cpp
-│   └── benchmark.cpp
-│
-├── CMakeLists.txt
-├── README.md
-└── .gitignore
+Optimized workflow:
 
+```
+Create FFT Plan
+        |
+        v
+Execute FFT
+        |
+        v
+Reuse Plan
+        |
+        v
+Execute FFT
+```
+
+## Workload Scaling Benchmark
+
+Power-of-two FFT sizes:
+
+| FFT Size | Legacy P50(ms) | Optimized P50(ms) | Speedup |
+|---|---:|---:|---:|
+|1024|0.0113|0.0048|2.33x|
+|16384|0.1697|0.1481|1.15x|
+|131072|1.6032|1.5433|1.04x|
+|1048576|37.9567|33.5433|1.13x|
+
+Observation:
+
+- Small FFT workloads benefit significantly from eliminating plan creation overhead.
+- Large FFT workloads are increasingly dominated by FFT computation cost.
+
+---
+
+# FFTW Multi-thread Scaling
+
+The FFT engine supports configurable FFTW multi-thread execution.
+
+Benchmark workload:
+
+```
+IFFT Size: 1048576
+```
+
+| Threads | P50 Latency(ms) | Speedup |
+|---|---:|---:|
+|1|31.02|1.00x|
+|2|20.37|1.52x|
+|4|16.71|1.86x|
+|8|13.84|2.24x|
+
+Results show:
+
+- Parallel execution improves large FFT workload performance.
+- Thread scaling is workload dependent.
+- Increasing thread count does not always guarantee better performance.
+
+---
+
+# End-to-End Pipeline Benchmark
+
+The complete OFDM pipeline includes:
+
+```
+BPSK
+ ↓
+Logistic Sequence Generation
+ ↓
+Encryption
+ ↓
+IFFT
+ ↓
+FFT
+ ↓
+Decryption
+ ↓
+BPSK Demodulation
+```
+
+Benchmark metrics:
+
+- P50 latency
+- P95 latency
+- Throughput
+- Correctness verification
+
+---
+
+## 100K Symbols
+
+| Threads | P50(ms) | Speedup |
+|---|---:|---:|
+|1|5.98|1.00x|
+|2|6.04|0.99x|
+|4|5.21|1.15x|
+|8|6.07|0.99x|
+
+Observation:
+
+For smaller workloads, multi-thread overhead can offset computation benefits.
+
+---
+
+## 1M Symbols
+
+| Threads | P50(ms) | Speedup |
+|---|---:|---:|
+|1|84.23|1.00x|
+|2|70.80|1.19x|
+|4|70.79|1.19x|
+|8|67.95|1.24x|
+
+Observation:
+
+Larger workloads achieve better parallel scaling because FFT computation becomes a larger portion of total execution time.
+
+Correctness verification:
+
+```
+End-to-End Bit Recovery: PASS
+```
+
+---
+
+# Performance Analysis
+
+This project evaluates optimization from both kernel-level and system-level perspectives.
+
+## Kernel-level optimization
+
+Examples:
+
+- FFTW plan reuse
+- FFTW multi-thread execution
+
+## System-level optimization
+
+The complete pipeline is benchmarked to evaluate real application performance.
+
+According to Amdahl's Law:
+
+> Overall acceleration is limited by the fraction of execution that can be parallelized.
+
+Therefore:
+
+- FFT kernel speedup does not directly translate into identical end-to-end speedup.
+- Workload size strongly affects the effectiveness of parallel optimization.
+
+---
+
+# Benchmark Framework
+
+All benchmarks use:
+
+- Release build
+- Warm-up iterations
+- Multiple measured iterations
+- P50/P95 latency statistics
+- Throughput measurement
+- Correctness validation
+
+Example:
+
+```
+Warm-up iterations: 10
+Measured iterations: 100
 ```
 
 ---
@@ -113,239 +288,88 @@ high-performance-ofdm-cpp/
 
 ## Requirements
 
-- Ubuntu / WSL Linux
-- GCC
+- Linux / WSL
+- C++17 compiler
 - CMake >= 3.16
 - FFTW3
 
 
-Install dependency:
+Install FFTW:
 
 ```bash
-sudo apt update
-
 sudo apt install libfftw3-dev
 ```
 
+---
 
-Build:
+## Compile
 
 ```bash
-git clone https://github.com/wwy-ustc/high-performance-ofdm-cpp.git
+cmake -S . -B build-release \
+      -DCMAKE_BUILD_TYPE=Release
 
-cd high-performance-ofdm-cpp
-
-cmake -S . -B build
-
-cmake --build build
+cmake --build build-release -j
 ```
 
+---
 
-Run:
+# Run
+
+## Main Program
 
 ```bash
-./build/ofdm_encryption_cpp
+./build-release/ofdm_encryption_cpp
+```
+
+Expected output:
+
+```
+FFT Reconstruction: PASS
+End-to-End Bit Recovery: PASS
 ```
 
 ---
 
-# Benchmark
+## Benchmarks
 
+### End-to-End Pipeline
 
-A lightweight benchmark framework is implemented to profile different computational operators.
+```bash
+./build-release/benchmark_pipeline
+```
 
+### FFTW Plan Reuse Benchmark
 
-Current configuration:
+```bash
+./build-release/benchmark_fftw
+```
 
-| Parameter | Value |
-|---|---|
-| Data size | 100000 symbols |
-| Precision | double |
-| FFT Library | FFTW3 |
+### FFTW Multi-thread Benchmark
 
-
-## Baseline Performance
-
-
-| Operator | Runtime |
-|---|---:|
-| BPSK Modulation | 3.21 ms |
-| Logistic Generation | 0.87 ms |
-| Encryption | 2.88 ms |
-| OFDM IFFT | 4.32 ms |
-| OFDM FFT | 3.11 ms |
-| **Total** | **14.39 ms** |
-
+```bash
+./build-release/benchmark_fftw_threads
+```
 
 ---
 
-# Performance Optimization
+# Engineering Highlights
 
-
-## OpenMP Parallelization Experiment
-
-
-An OpenMP parallelization experiment was conducted on the encryption kernel.
-
-
-The encryption operation contains independent element-wise computations, making it suitable for CPU parallel execution.
-
-
-However, benchmark results showed that the parallel version was slower under the current workload.
-
-
-## Result
-
-
-| Version | Total Runtime |
-|---|---:|
-| Serial implementation | 14.39 ms |
-| OpenMP experiment | 34.09 ms |
-
-
-## Analysis
-
-
-The performance degradation was caused by:
-
-- thread creation overhead
-- scheduling cost
-- synchronization overhead
-
-
-This experiment demonstrates that optimization requires:
-
-```
-Measure
-
-   ↓
-
-Analyze Bottleneck
-
-   ↓
-
-Optimize
-
-   ↓
-
-Benchmark Again
-```
-
-rather than simply adding parallel execution.
-
+- Designed a modular C++ OFDM processing framework
+- Built FFTW-based high-performance FFT/IFFT engine
+- Applied RAII for FFT resource lifecycle management
+- Implemented reproducible benchmarking framework
+- Performed workload scaling analysis
+- Evaluated multi-thread parallel performance
+- Compared kernel-level and end-to-end optimization effects
 
 ---
 
-# Technical Details
+# Future Improvements
 
+Possible extensions:
 
-## C++ Modular Architecture
-
-
-Each computational operator is separated into independent modules:
-
-
-```
-Operator
-
-    |
-
-Header Interface (.hpp)
-
-    |
-
-Implementation (.cpp)
-
-    |
-
-Executable Pipeline
-
-```
-
-
-This design improves:
-
-- maintainability
-- testability
-- future optimization
-
-
----
-
-## FFTW3 Integration
-
-
-The OFDM module uses FFTW3 for Fourier transform computation.
-
-
-Implemented operations:
-
-
-```
-Frequency Domain
-
-       |
-
-      IFFT
-
-       |
-
-Time Domain
-
-       |
-
-       FFT
-
-       |
-
-Frequency Domain
-
-```
-
-
-The implementation uses:
-
-- `std::complex<double>`
-- FFTW planning mechanism
-- CMake dependency management
-
-
----
-
-# Roadmap
-
-
-## Completed
-
-- [x] C++17 project architecture
-- [x] CMake build system
-- [x] FFTW3 integration
-- [x] OFDM FFT/IFFT pipeline
-- [x] Benchmark framework
-- [x] OpenMP optimization experiment
-
-
-## Future
-
-- [ ] FFTW multi-thread acceleration
-- [ ] SIMD/vectorization optimization
-- [ ] Large-scale profiling
-- [ ] CUDA acceleration
-- [ ] GPU kernel optimization
-
-
----
-
-# Motivation
-
-
-This project is an exploration of building high-performance numerical computing systems with modern C++.
-
-The long-term goal is to bridge the gap between research algorithms and production-oriented computing infrastructure.
-
-
----
-
-# License
-
-MIT License
+- SIMD optimization with AVX instructions
+- CUDA GPU acceleration
+- Memory bandwidth optimization
+- FPGA hardware acceleration
+- Distributed pipeline execution
