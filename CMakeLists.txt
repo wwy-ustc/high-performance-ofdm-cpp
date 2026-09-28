@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
+find_package(Threads REQUIRED)
+
 # ============================================================
 # Main executable
 # ============================================================
@@ -28,7 +30,9 @@ target_include_directories(
 target_link_libraries(
     ofdm_encryption_cpp
     PRIVATE
+    fftw3_threads
     fftw3
+    Threads::Threads
 )
 
 
@@ -52,9 +56,11 @@ target_include_directories(
 )
 
 target_link_libraries(
-    benchmark_pipeline
+   benchmark_pipeline
     PRIVATE
+    fftw3_threads
     fftw3
+    Threads::Threads
 )
 
 
@@ -72,5 +78,25 @@ target_include_directories(
 target_link_libraries(
     benchmark_fftw
     PRIVATE
+    fftw3_threads
     fftw3
+    Threads::Threads
+)
+
+add_executable(benchmark_fftw_threads
+    benchmarks/benchmark_fftw_threads.cpp
+)
+
+target_include_directories(
+    benchmark_fftw_threads
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(
+    benchmark_fftw_threads
+    PRIVATE
+    fftw3_threads
+    fftw3
+    Threads::Threads
 )

@@ -155,6 +155,19 @@ benchmark_fftw/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_fftw.dir/build.make CMakeFiles/benchmark_fftw.dir/build
 .PHONY : benchmark_fftw/fast
 
+#=============================================================================
+# Target rules for targets named benchmark_fftw_threads
+
+# Build rule for target.
+benchmark_fftw_threads: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 benchmark_fftw_threads
+.PHONY : benchmark_fftw_threads
+
+# fast build rule for target.
+benchmark_fftw_threads/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_fftw_threads.dir/build.make CMakeFiles/benchmark_fftw_threads.dir/build
+.PHONY : benchmark_fftw_threads/fast
+
 benchmarks/benchmark_fftw.o: benchmarks/benchmark_fftw.cpp.o
 .PHONY : benchmarks/benchmark_fftw.o
 
@@ -178,6 +191,30 @@ benchmarks/benchmark_fftw.s: benchmarks/benchmark_fftw.cpp.s
 benchmarks/benchmark_fftw.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_fftw.dir/build.make CMakeFiles/benchmark_fftw.dir/benchmarks/benchmark_fftw.cpp.s
 .PHONY : benchmarks/benchmark_fftw.cpp.s
+
+benchmarks/benchmark_fftw_threads.o: benchmarks/benchmark_fftw_threads.cpp.o
+.PHONY : benchmarks/benchmark_fftw_threads.o
+
+# target to build an object file
+benchmarks/benchmark_fftw_threads.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_fftw_threads.dir/build.make CMakeFiles/benchmark_fftw_threads.dir/benchmarks/benchmark_fftw_threads.cpp.o
+.PHONY : benchmarks/benchmark_fftw_threads.cpp.o
+
+benchmarks/benchmark_fftw_threads.i: benchmarks/benchmark_fftw_threads.cpp.i
+.PHONY : benchmarks/benchmark_fftw_threads.i
+
+# target to preprocess a source file
+benchmarks/benchmark_fftw_threads.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_fftw_threads.dir/build.make CMakeFiles/benchmark_fftw_threads.dir/benchmarks/benchmark_fftw_threads.cpp.i
+.PHONY : benchmarks/benchmark_fftw_threads.cpp.i
+
+benchmarks/benchmark_fftw_threads.s: benchmarks/benchmark_fftw_threads.cpp.s
+.PHONY : benchmarks/benchmark_fftw_threads.s
+
+# target to generate assembly for a file
+benchmarks/benchmark_fftw_threads.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_fftw_threads.dir/build.make CMakeFiles/benchmark_fftw_threads.dir/benchmarks/benchmark_fftw_threads.cpp.s
+.PHONY : benchmarks/benchmark_fftw_threads.cpp.s
 
 benchmarks/benchmark_pipeline.o: benchmarks/benchmark_pipeline.cpp.o
 .PHONY : benchmarks/benchmark_pipeline.o
@@ -374,11 +411,15 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... benchmark_fftw"
+	@echo "... benchmark_fftw_threads"
 	@echo "... benchmark_pipeline"
 	@echo "... ofdm_encryption_cpp"
 	@echo "... benchmarks/benchmark_fftw.o"
 	@echo "... benchmarks/benchmark_fftw.i"
 	@echo "... benchmarks/benchmark_fftw.s"
+	@echo "... benchmarks/benchmark_fftw_threads.o"
+	@echo "... benchmarks/benchmark_fftw_threads.i"
+	@echo "... benchmarks/benchmark_fftw_threads.s"
 	@echo "... benchmarks/benchmark_pipeline.o"
 	@echo "... benchmarks/benchmark_pipeline.i"
 	@echo "... benchmarks/benchmark_pipeline.s"

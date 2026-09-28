@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/benchmark_fftw_threads.dir/benchmarks/benchmark_fftw_threads.cpp.o -o benchmark_fftw_threads  -lfftw3_threads -lfftw3 

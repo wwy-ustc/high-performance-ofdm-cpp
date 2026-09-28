@@ -2,6 +2,8 @@
 #include <vector>
 #include <complex>
 #include <random>
+#include <iomanip>
+#include <string>
 
 #include "bpsk.hpp"
 #include "logistic.hpp"
@@ -10,21 +12,34 @@
 #include "benchmark.hpp"
 
 
-int main()
+// ============================================================
+// 一次完整 Pipeline Benchmark 的结果
+// ============================================================
+
+struct PipelineResult
 {
-    // ========================================
-    // Benchmark 配置
-    // ========================================
+    BenchmarkResult performance;
 
-    const int N = 100000;
+    double throughput;
 
-    const int warmupIterations = 10;
-    const int measuredIterations = 100;
+    bool correctness;
+};
 
 
-    // ========================================
+// ============================================================
+// 测试某一个 workload + 某一个线程数
+// ============================================================
+
+PipelineResult runPipelineBenchmark(
+    int N,
+    int threadCount,
+    int warmupIterations,
+    int measuredIterations
+)
+{
+    // --------------------------------------------------------
     // 固定输入
-    // ========================================
+    // --------------------------------------------------------
 
     std::vector<int> bits(N);
 
@@ -41,9 +56,9 @@ int main()
     }
 
 
-    // ========================================
+    // --------------------------------------------------------
     // Pipeline 中间结果
-    // ========================================
+    // --------------------------------------------------------
 
     std::vector<double> symbols;
 
@@ -67,19 +82,22 @@ int main()
         recoveredBits;
 
 
-    // ========================================
-    // OFDM Engine
+    // --------------------------------------------------------
+    // 创建指定线程数的 OFDM Engine
     //
-    // FFTW Plan / Buffer 初始化一次，
-    // Benchmark 测运行阶段延迟。
-    // ========================================
+    // 注意：
+    // Engine 初始化不计入运行阶段 Benchmark
+    // --------------------------------------------------------
 
-    OfdmEngine ofdm(N);
+    OfdmEngine ofdm(
+        N,
+        threadCount
+    );
 
 
-    // ========================================
+    // --------------------------------------------------------
     // End-to-End Benchmark
-    // ========================================
+    // --------------------------------------------------------
 
     BenchmarkResult result =
         benchmark(
@@ -121,7 +139,7 @@ int main()
                     );
 
 
-                // 6. complex -> real
+                // 6. Complex -> Real
                 recoveredEncrypted.resize(N);
 
                 for (int i = 0; i < N; ++i)
@@ -150,11 +168,12 @@ int main()
         );
 
 
-    // ========================================
+    // --------------------------------------------------------
     // Throughput
     //
-    // P50 是毫秒，因此先除以1000变成秒
-    // ========================================
+    // p50Ms 是毫秒
+    // 除以1000转换成秒
+    // --------------------------------------------------------
 
     double throughput =
         static_cast<double>(N)
@@ -162,84 +181,185 @@ int main()
         (result.p50Ms / 1000.0);
 
 
-    // ========================================
-    // 输出
-    // ========================================
+    // --------------------------------------------------------
+    // End-to-End 正确性
+    // --------------------------------------------------------
+
+    bool correctness =
+        (bits == recoveredBits);
+
+
+    PipelineResult pipelineResult;
+
+    pipelineResult.performance =
+        result;
+
+    pipelineResult.throughput =
+        throughput;
+
+    pipelineResult.correctness =
+        correctness;
+
+
+    return pipelineResult;
+}
+
+
+// ============================================================
+// 测试某一个 workload 的 1/2/4/8 Thread Scaling
+// ============================================================
+
+void runThreadScaling(
+    int N,
+    int warmupIterations,
+    int measuredIterations
+)
+{
+    std::vector<int> threadCounts =
+    {
+        1,
+        2,
+        4,
+        8
+    };
+
 
     std::cout
-        << "====================================\n";
+        << "============================================================\n";
 
     std::cout
-        << "End-to-End OFDM Pipeline Benchmark\n";
-
-    std::cout
-        << "====================================\n";
-
-    std::cout
-        << "Data size: "
+        << "Pipeline Size: "
         << N
         << " symbols\n";
 
     std::cout
-        << "Warm-up iterations: "
-        << warmupIterations
+        << "============================================================\n";
+
+
+    std::cout
+        << std::left
+        << std::setw(10)
+        << "Threads"
+
+        << std::setw(14)
+        << "P50(ms)"
+
+        << std::setw(14)
+        << "P95(ms)"
+
+        << std::setw(16)
+        << "Throughput"
+
+        << std::setw(12)
+        << "Speedup"
+
+        << "Correct"
+
         << "\n";
 
-    std::cout
-        << "Measured iterations: "
-        << measuredIterations
-        << "\n";
 
     std::cout
-        << "====================================\n\n";
+        << "------------------------------------------------------------"
+        << "--------------\n";
 
 
-    std::cout
-        << "Average: "
-        << result.averageMs
-        << " ms\n";
-
-    std::cout
-        << "Min: "
-        << result.minMs
-        << " ms\n";
-
-    std::cout
-        << "P50: "
-        << result.p50Ms
-        << " ms\n";
-
-    std::cout
-        << "P95: "
-        << result.p95Ms
-        << " ms\n";
-
-    std::cout
-        << "Max: "
-        << result.maxMs
-        << " ms\n";
+    double baselineP50 = 0.0;
 
 
-    std::cout
-        << "\nP50 Throughput: "
-        << throughput
-        << " symbols/s\n";
-
-
-    // ========================================
-    // End-to-End Correctness
-    // ========================================
-
-    if (bits == recoveredBits)
+    for (int threadCount : threadCounts)
     {
+        PipelineResult result =
+            runPipelineBenchmark(
+                N,
+                threadCount,
+                warmupIterations,
+                measuredIterations
+            );
+
+
+        // 单线程作为 baseline
+        if (threadCount == 1)
+        {
+            baselineP50 =
+                result.performance.p50Ms;
+        }
+
+
+        double speedup =
+            baselineP50
+            /
+            result.performance.p50Ms;
+
+
         std::cout
-            << "End-to-End Bit Recovery: PASS\n";
+            << std::left
+            << std::setw(10)
+            << threadCount
+
+            << std::setw(14)
+            << result.performance.p50Ms
+
+            << std::setw(14)
+            << result.performance.p95Ms
+
+            << std::setw(16)
+            << result.throughput
+
+            << std::setw(12)
+            << speedup
+
+            << (
+                result.correctness
+                ? "PASS"
+                : "FAIL"
+            )
+
+            << "\n";
     }
-    else
-    {
-        std::cout
-            << "End-to-End Bit Recovery: FAIL\n";
-    }
+
+
+    std::cout << "\n";
+}
+
+
+// ============================================================
+// main
+// ============================================================
+
+int main()
+{
+    std::cout
+        << "============================================================\n";
+
+    std::cout
+        << "End-to-End OFDM Thread Scaling Benchmark\n";
+
+    std::cout
+        << "============================================================\n\n";
+
+
+    // --------------------------------------------------------
+    // 100K workload
+    // --------------------------------------------------------
+
+    runThreadScaling(
+        100000,
+        10,
+        100
+    );
+
+
+    // --------------------------------------------------------
+    // 1M workload
+    //
+    // 计算量更大，因此减少 Benchmark 次数
+    // --------------------------------------------------------
+
+    runThreadScaling(
+        1000000,
+        5,
+        30
+    );
 
 
     return 0;
