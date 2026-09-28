@@ -56,3 +56,21 @@ target_link_libraries(
     PRIVATE
     fftw3
 )
+
+
+add_executable(benchmark_fftw
+    benchmarks/benchmark_fftw.cpp
+    src/ofdm.cpp
+)
+
+target_include_directories(
+    benchmark_fftw
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(
+    benchmark_fftw
+    PRIVATE
+    fftw3
+)

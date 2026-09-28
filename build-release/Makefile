@@ -142,6 +142,43 @@ benchmark_pipeline/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_pipeline.dir/build.make CMakeFiles/benchmark_pipeline.dir/build
 .PHONY : benchmark_pipeline/fast
 
+#=============================================================================
+# Target rules for targets named benchmark_fftw
+
+# Build rule for target.
+benchmark_fftw: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 benchmark_fftw
+.PHONY : benchmark_fftw
+
+# fast build rule for target.
+benchmark_fftw/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_fftw.dir/build.make CMakeFiles/benchmark_fftw.dir/build
+.PHONY : benchmark_fftw/fast
+
+benchmarks/benchmark_fftw.o: benchmarks/benchmark_fftw.cpp.o
+.PHONY : benchmarks/benchmark_fftw.o
+
+# target to build an object file
+benchmarks/benchmark_fftw.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_fftw.dir/build.make CMakeFiles/benchmark_fftw.dir/benchmarks/benchmark_fftw.cpp.o
+.PHONY : benchmarks/benchmark_fftw.cpp.o
+
+benchmarks/benchmark_fftw.i: benchmarks/benchmark_fftw.cpp.i
+.PHONY : benchmarks/benchmark_fftw.i
+
+# target to preprocess a source file
+benchmarks/benchmark_fftw.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_fftw.dir/build.make CMakeFiles/benchmark_fftw.dir/benchmarks/benchmark_fftw.cpp.i
+.PHONY : benchmarks/benchmark_fftw.cpp.i
+
+benchmarks/benchmark_fftw.s: benchmarks/benchmark_fftw.cpp.s
+.PHONY : benchmarks/benchmark_fftw.s
+
+# target to generate assembly for a file
+benchmarks/benchmark_fftw.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_fftw.dir/build.make CMakeFiles/benchmark_fftw.dir/benchmarks/benchmark_fftw.cpp.s
+.PHONY : benchmarks/benchmark_fftw.cpp.s
+
 benchmarks/benchmark_pipeline.o: benchmarks/benchmark_pipeline.cpp.o
 .PHONY : benchmarks/benchmark_pipeline.o
 
@@ -305,6 +342,7 @@ src/ofdm.o: src/ofdm.cpp.o
 src/ofdm.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ofdm_encryption_cpp.dir/build.make CMakeFiles/ofdm_encryption_cpp.dir/src/ofdm.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_pipeline.dir/build.make CMakeFiles/benchmark_pipeline.dir/src/ofdm.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_fftw.dir/build.make CMakeFiles/benchmark_fftw.dir/src/ofdm.cpp.o
 .PHONY : src/ofdm.cpp.o
 
 src/ofdm.i: src/ofdm.cpp.i
@@ -314,6 +352,7 @@ src/ofdm.i: src/ofdm.cpp.i
 src/ofdm.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ofdm_encryption_cpp.dir/build.make CMakeFiles/ofdm_encryption_cpp.dir/src/ofdm.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_pipeline.dir/build.make CMakeFiles/benchmark_pipeline.dir/src/ofdm.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_fftw.dir/build.make CMakeFiles/benchmark_fftw.dir/src/ofdm.cpp.i
 .PHONY : src/ofdm.cpp.i
 
 src/ofdm.s: src/ofdm.cpp.s
@@ -323,6 +362,7 @@ src/ofdm.s: src/ofdm.cpp.s
 src/ofdm.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ofdm_encryption_cpp.dir/build.make CMakeFiles/ofdm_encryption_cpp.dir/src/ofdm.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_pipeline.dir/build.make CMakeFiles/benchmark_pipeline.dir/src/ofdm.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_fftw.dir/build.make CMakeFiles/benchmark_fftw.dir/src/ofdm.cpp.s
 .PHONY : src/ofdm.cpp.s
 
 # Help Target
@@ -333,8 +373,12 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... benchmark_fftw"
 	@echo "... benchmark_pipeline"
 	@echo "... ofdm_encryption_cpp"
+	@echo "... benchmarks/benchmark_fftw.o"
+	@echo "... benchmarks/benchmark_fftw.i"
+	@echo "... benchmarks/benchmark_fftw.s"
 	@echo "... benchmarks/benchmark_pipeline.o"
 	@echo "... benchmarks/benchmark_pipeline.i"
 	@echo "... benchmarks/benchmark_pipeline.s"

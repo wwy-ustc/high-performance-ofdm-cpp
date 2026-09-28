@@ -1,0 +1,20 @@
+====================================
+FFTW IFFT Microbenchmark
+====================================
+Data size: 100000
+Warm-up iterations: 10
+Measured iterations: 100
+====================================
+
+Legacy IFFT
+  avg : 1.85566 ms
+  p50 : 1.73536 ms
+  p95 : 2.94493 ms
+
+Optimized IFFT
+  avg : 1.34182 ms
+  p50 : 1.26605 ms
+  p95 : 2.0416 ms
+
+P50 Speedup: 1.37069x
+P50 Latency Reduction: 27.0439%
