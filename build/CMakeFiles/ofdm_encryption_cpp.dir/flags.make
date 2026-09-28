@@ -6,5 +6,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = -I/home/wwy/projects/ofdm_encryption_cpp/include
 
-CXX_FLAGS = -fopenmp -std=gnu++17
+CXX_FLAGS = -std=gnu++17
 

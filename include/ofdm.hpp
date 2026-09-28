@@ -1,35 +1,43 @@
 #pragma once
 
-#include <vector>
 #include <complex>
+#include <vector>
+
+#include <fftw3.h>
 
 
-// =============================
-// OFDM调制
-//
-// 输入:
-// 频域BPSK符号
-//
-// 输出:
-// IFFT后的时域复数采样
-// =============================
+class OfdmEngine
+{
+public:
+    // 构造函数：创建FFT/IFFT执行环境
+    explicit OfdmEngine(int size);
 
-std::vector<std::complex<double>> ofdmModulate(
-    const std::vector<double>& symbols
-);
+    // 析构函数：释放FFTW资源
+    ~OfdmEngine();
 
+    // 禁止复制
+    OfdmEngine(const OfdmEngine&) = delete;
+    OfdmEngine& operator=(const OfdmEngine&) = delete;
 
 
-// =============================
-// OFDM解调
-//
-// 输入:
-// 时域复数采样
-//
-// 输出:
-// FFT后的频域符号
-// =============================
+    // OFDM调制：频域 -> IFFT -> 时域
+    std::vector<std::complex<double>> modulate(
+        const std::vector<double>& symbols
+    );
 
-std::vector<std::complex<double>> ofdmDemodulate(
-    const std::vector<std::complex<double>>& samples
-);
+
+    // OFDM解调：时域 -> FFT -> 频域
+    std::vector<std::complex<double>> demodulate(
+        const std::vector<std::complex<double>>& samples
+    );
+
+
+private:
+    int size_;
+
+    fftw_complex* input_;
+    fftw_complex* output_;
+
+    fftw_plan ifftPlan_;
+    fftw_plan fftPlan_;
+};

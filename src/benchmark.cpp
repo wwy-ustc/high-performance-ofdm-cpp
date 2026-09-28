@@ -1,32 +1,99 @@
 #include "benchmark.hpp"
 
+#include <algorithm>
 #include <chrono>
+#include <stdexcept>
+#include <vector>
 
 
-double measureTime(
-    std::function<void()> func
+BenchmarkResult benchmark(
+    const std::function<void()>& func,
+    int warmupIterations,
+    int measuredIterations
 )
 {
-
-    auto start =
-        std::chrono::high_resolution_clock::now();
-
-
-
-    func();
-
+    if (measuredIterations <= 0)
+    {
+        throw std::invalid_argument(
+            "measuredIterations must be greater than 0."
+        );
+    }
 
 
-    auto end =
-        std::chrono::high_resolution_clock::now();
+    // Warm-up
+    for (int i = 0; i < warmupIterations; ++i)
+    {
+        func();
+    }
 
 
-
-    std::chrono::duration<double, std::milli>
-    elapsed =
-        end - start;
+    std::vector<double> times;
+    times.reserve(measuredIterations);
 
 
+    // Real benchmark
+    for (int i = 0; i < measuredIterations; ++i)
+    {
+        auto start =
+            std::chrono::steady_clock::now();
 
-    return elapsed.count();
+        func();
+
+        auto end =
+            std::chrono::steady_clock::now();
+
+
+        std::chrono::duration<double, std::milli> elapsed =
+            end - start;
+
+
+        times.push_back(elapsed.count());
+    }
+
+
+    double sum = 0.0;
+
+    for (double time : times)
+    {
+        sum += time;
+    }
+
+
+    double average =
+        sum / static_cast<double>(times.size());
+
+
+    std::sort(times.begin(), times.end());
+
+
+    auto percentile =
+        [&](double p)
+        {
+            std::size_t index =
+                static_cast<std::size_t>(
+                    p * (times.size() - 1)
+                );
+
+            return times[index];
+        };
+
+
+    BenchmarkResult result;
+
+    result.averageMs = average;
+
+    result.minMs =
+        times.front();
+
+    result.p50Ms =
+        percentile(0.50);
+
+    result.p95Ms =
+        percentile(0.95);
+
+    result.maxMs =
+        times.back();
+
+
+    return result;
 }

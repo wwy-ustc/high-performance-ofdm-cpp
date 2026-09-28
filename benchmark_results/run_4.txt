@@ -1,0 +1,74 @@
+====================================
+OFDM Performance Benchmark
+====================================
+Data size: 100000 symbols
+Warm-up iterations: 10
+Measured iterations: 100
+====================================
+
+BPSK Modulation
+  avg : 0.373178 ms
+  min : 0.338221 ms
+  p50 : 0.36791 ms
+  p95 : 0.408149 ms
+  max : 0.471805 ms
+
+Logistic Generation
+  avg : 0.229182 ms
+  min : 0.215989 ms
+  p50 : 0.222692 ms
+  p95 : 0.25599 ms
+  max : 0.305766 ms
+
+Encryption
+  avg : 0.0674269 ms
+  min : 0.065275 ms
+  p50 : 0.06544 ms
+  p95 : 0.077489 ms
+  max : 0.114669 ms
+
+====================================
+FFTW Optimization A/B Test
+====================================
+
+Legacy IFFT (create plan every call)
+  avg : 1.30414 ms
+  min : 0.760968 ms
+  p50 : 1.14681 ms
+  p95 : 1.95335 ms
+  max : 2.19101 ms
+
+Optimized IFFT (plan reuse)
+  avg : 0.690779 ms
+  min : 0.627656 ms
+  p50 : 0.665276 ms
+  p95 : 0.793796 ms
+  max : 2.05118 ms
+
+Legacy FFT (create plan every call)
+  avg : 0.764059 ms
+  min : 0.674517 ms
+  p50 : 0.714455 ms
+  p95 : 0.908971 ms
+  max : 2.22627 ms
+
+Optimized FFT (plan reuse)
+  avg : 0.688776 ms
+  min : 0.616775 ms
+  p50 : 0.660624 ms
+  p95 : 0.847366 ms
+  max : 1.12359 ms
+
+====================================
+Optimization Summary
+====================================
+IFFT P50 speedup: 1.7238x
+IFFT P50 latency reduction: 41.9888%
+FFT P50 speedup: 1.08149x
+FFT P50 latency reduction: 7.53455%
+
+====================================
+Correctness Check
+====================================
+Maximum FFT reconstruction error: 1.75413e-15
+Result: PASS

@@ -5,7 +5,10 @@ project(ofdm_encryption_cpp)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(OpenMP REQUIRED)
+
+# ============================================================
+# Main executable
+# ============================================================
 
 add_executable(ofdm_encryption_cpp
     src/main.cpp
@@ -16,10 +19,40 @@ add_executable(ofdm_encryption_cpp
     src/benchmark.cpp
 )
 
-target_include_directories(ofdm_encryption_cpp PRIVATE include)
+target_include_directories(
+    ofdm_encryption_cpp
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
 target_link_libraries(
     ofdm_encryption_cpp
+    PRIVATE
     fftw3
-    OpenMP::OpenMP_CXX
+)
+
+
+# ============================================================
+# End-to-End Pipeline Benchmark
+# ============================================================
+
+add_executable(benchmark_pipeline
+    benchmarks/benchmark_pipeline.cpp
+    src/logistic.cpp
+    src/bpsk.cpp
+    src/encryption.cpp
+    src/ofdm.cpp
+    src/benchmark.cpp
+)
+
+target_include_directories(
+    benchmark_pipeline
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(
+    benchmark_pipeline
+    PRIVATE
+    fftw3
 )

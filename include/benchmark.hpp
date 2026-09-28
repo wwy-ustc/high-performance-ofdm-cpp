@@ -3,8 +3,18 @@
 #include <functional>
 
 
-// 测量函数运行时间(ms)
+struct BenchmarkResult
+{
+   double averageMs;
+   double minMs;
+   double maxMs;
+   double p50Ms;
+   double p95Ms;
+};
 
-double measureTime(
-    std::function<void()> func
+
+BenchmarkResult benchmark(
+    const std::function<void()>& func,
+    int warmupIterations = 10,
+    int measuredIterations = 100
 );

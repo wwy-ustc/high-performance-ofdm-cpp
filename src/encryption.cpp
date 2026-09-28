@@ -1,6 +1,6 @@
 #include "encryption.hpp"
 #include "cstddef"
-#include <omp.h>
+
 
 std::vector<double> encryptBPSK(
     const std::vector<double>& symbols,
@@ -9,7 +9,7 @@ std::vector<double> encryptBPSK(
 {
     std::vector<double> encrypted(symbols.size());
 
-    #pragma omp parallel for
+   
     for (std::size_t i = 0; i < symbols.size(); ++i) {
         int symbolBit;
 

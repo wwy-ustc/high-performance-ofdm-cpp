@@ -172,8 +172,6 @@ ofdm_encryption_cpp: CMakeFiles/ofdm_encryption_cpp.dir/src/encryption.cpp.o
 ofdm_encryption_cpp: CMakeFiles/ofdm_encryption_cpp.dir/src/ofdm.cpp.o
 ofdm_encryption_cpp: CMakeFiles/ofdm_encryption_cpp.dir/src/benchmark.cpp.o
 ofdm_encryption_cpp: CMakeFiles/ofdm_encryption_cpp.dir/build.make
-ofdm_encryption_cpp: /usr/lib/gcc/x86_64-linux-gnu/11/libgomp.so
-ofdm_encryption_cpp: /usr/lib/x86_64-linux-gnu/libpthread.a
 ofdm_encryption_cpp: CMakeFiles/ofdm_encryption_cpp.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/wwy/projects/ofdm_encryption_cpp/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking CXX executable ofdm_encryption_cpp"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/ofdm_encryption_cpp.dir/link.txt --verbose=$(VERBOSE)

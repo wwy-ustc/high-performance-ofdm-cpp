@@ -3,264 +3,257 @@
 #include <complex>
 #include <random>
 
-
 #include "bpsk.hpp"
 #include "logistic.hpp"
 #include "encryption.hpp"
 #include "ofdm.hpp"
-#include "benchmark.hpp"
-
 
 
 int main()
 {
-
-    // ===================================
-    // 1. 设置测试数据规模
-    //
-    // AI Infra benchmark通常使用较大规模数据
-    //
-    // ===================================
+    // ========================================
+    // 1. 基本配置
+    // ========================================
 
     const int N = 100000;
 
 
-
-    // ===================================
-    // 2. 生成随机bit数据
-    //
-    // 模拟真实输入
-    //
-    // ===================================
+    // ========================================
+    // 2. 生成固定输入 bits
+    // ========================================
 
     std::vector<int> bits(N);
 
+    std::mt19937 generator(42);
 
-    std::random_device rd;
-
-    std::mt19937 gen(rd());
-
-    std::uniform_int_distribution<int> dist(0,1);
+    std::uniform_int_distribution<int>
+        distribution(0, 1);
 
 
-
-    for(int i = 0; i < N; i++)
+    for (int i = 0; i < N; ++i)
     {
-        bits[i] = dist(gen);
+        bits[i] =
+            distribution(generator);
     }
 
 
+    // ========================================
+    // 3. BPSK 调制
+    //
+    // 0 -> -1
+    // 1 -> +1
+    // ========================================
 
-    std::vector<double> symbols;
-
-    std::vector<double> chaos;
-
-    std::vector<double> encrypted;
-
-
-    std::vector<std::complex<double>> timeSamples;
-
-    std::vector<std::complex<double>> recovered;
+    std::vector<double> symbols =
+        bpskModulate(bits);
 
 
+    // ========================================
+    // 4. 生成 Logistic 混沌序列
+    // ========================================
 
-
-    // ===================================
-    // Benchmark 1:
-    // BPSK modulation
-    // ===================================
-
-
-    double bpskTime =
-        measureTime(
-            [&]()
-            {
-                symbols =
-                    bpskModulate(bits);
-            }
+    std::vector<double> chaos =
+        generateLogisticSequence(
+            N,
+            0.54321,
+            3.999
         );
 
 
+    // ========================================
+    // 5. 加密
+    // ========================================
 
-    // ===================================
-    // Benchmark 2:
-    // Logistic sequence generation
-    // ===================================
-
-
-    double logisticTime =
-        measureTime(
-            [&]()
-            {
-                chaos =
-                    generateLogisticSequence(
-                        N,
-                        0.54321,
-                        3.999
-                    );
-            }
+    std::vector<double> encrypted =
+        encryptBPSK(
+            symbols,
+            chaos
         );
 
 
+    // ========================================
+    // 6. 创建 OFDM Engine
+    //
+    // 在构造函数中：
+    // - 分配 FFTW Buffer
+    // - 创建 FFT Plan
+    // - 创建 IFFT Plan
+    //
+    // 后续重复复用这些资源
+    // ========================================
+
+    OfdmEngine ofdm(N);
 
 
-    // ===================================
-    // Benchmark 3:
-    // Encryption
-    // ===================================
+    // ========================================
+    // 7. OFDM 调制
+    //
+    // Frequency Domain
+    //      ↓
+    //     IFFT
+    //      ↓
+    // Time Domain
+    // ========================================
+
+    std::vector<std::complex<double>>
+        timeSamples =
+            ofdm.modulate(
+                encrypted
+            );
 
 
-    double encryptionTime =
-        measureTime(
-            [&]()
-            {
-                encrypted =
-                    encryptBPSK(
-                        symbols,
-                        chaos
-                    );
-            }
+    // ========================================
+    // 8. OFDM 解调
+    //
+    // Time Domain
+    //      ↓
+    //     FFT
+    //      ↓
+    // Frequency Domain
+    // ========================================
+
+    std::vector<std::complex<double>>
+        recovered =
+            ofdm.demodulate(
+                timeSamples
+            );
+
+
+    // ========================================
+    // 9. FFT 数值正确性检查
+    //
+    // 理论上：
+    //
+    // encrypted
+    //   ↓
+    // IFFT
+    //   ↓
+    // FFT
+    //   ↓
+    // recovered
+    //
+    // recovered 应该与 encrypted 基本一致
+    // ========================================
+
+    double maxError = 0.0;
+
+
+    for (std::size_t i = 0;
+         i < encrypted.size();
+         ++i)
+    {
+        std::complex<double> expected(
+            encrypted[i],
+            0.0
         );
 
 
+        double error =
+            std::abs(
+                recovered[i]
+                -
+                expected
+            );
 
 
+        if (error > maxError)
+        {
+            maxError = error;
+        }
+    }
 
-    // ===================================
-    // Benchmark 4:
-    // OFDM IFFT
-    // ===================================
+
+    // ========================================
+    // 10. complex<double> -> double
+    //
+    // FFT 输出是复数，
+    // 但 BPSK / Encryption 使用 double。
+    //
+    // 因此取实部作为恢复后的加密符号。
+    // ========================================
+
+    std::vector<double>
+        recoveredEncrypted(N);
 
 
-    double ifftTime =
-        measureTime(
-            [&]()
-            {
-                timeSamples =
-                    ofdmModulate(
-                        encrypted
-                    );
-            }
+    for (int i = 0; i < N; ++i)
+    {
+        recoveredEncrypted[i] =
+            recovered[i].real();
+    }
+
+
+    // ========================================
+    // 11. 解密
+    // ========================================
+
+    std::vector<double> decrypted =
+        decryptBPSK(
+            recoveredEncrypted,
+            chaos
         );
 
 
+    // ========================================
+    // 12. BPSK 解调
+    //
+    // -1 -> 0
+    // +1 -> 1
+    // ========================================
 
-
-
-    // ===================================
-    // Benchmark 5:
-    // OFDM FFT
-    // ===================================
-
-
-    double fftTime =
-        measureTime(
-            [&]()
-            {
-                recovered =
-                    ofdmDemodulate(
-                        timeSamples
-                    );
-            }
+    std::vector<int> recoveredBits =
+        bpskDemodulate(
+            decrypted
         );
 
 
-
-
-
-    // ===================================
-    // 输出benchmark结果
-    // ===================================
-
+    // ========================================
+    // 13. 输出正确性结果
+    // ========================================
 
     std::cout
-        << "============================"
-        << std::endl;
-
+        << "====================================\n";
 
     std::cout
-        << "Performance Benchmark"
-        << std::endl;
+        << "High Performance OFDM Engine\n";
 
+    std::cout
+        << "====================================\n";
 
     std::cout
         << "Data size: "
         << N
-        << " symbols"
-        << std::endl;
+        << " symbols\n\n";
 
 
     std::cout
-        << "============================"
-        << std::endl;
+        << "Maximum FFT reconstruction error: "
+        << maxError
+        << "\n";
 
 
-
-    std::cout
-        << "BPSK modulation: "
-        << bpskTime
-        << " ms"
-        << std::endl;
-
-
-
-    std::cout
-        << "Logistic generation: "
-        << logisticTime
-        << " ms"
-        << std::endl;
+    if (maxError < 1e-9)
+    {
+        std::cout
+            << "FFT Reconstruction: PASS\n";
+    }
+    else
+    {
+        std::cout
+            << "FFT Reconstruction: FAIL\n";
+    }
 
 
-
-    std::cout
-        << "Encryption: "
-        << encryptionTime
-        << " ms"
-        << std::endl;
-
-
-
-    std::cout
-        << "IFFT: "
-        << ifftTime
-        << " ms"
-        << std::endl;
-
-
-
-    std::cout
-        << "FFT: "
-        << fftTime
-        << " ms"
-        << std::endl;
-
-
-
-    double total =
-        bpskTime
-        + logisticTime
-        + encryptionTime
-        + ifftTime
-        + fftTime;
-
-
-
-    std::cout
-        << "----------------------------"
-        << std::endl;
-
-
-    std::cout
-        << "Total:"
-        << total
-        << " ms"
-        << std::endl;
-
-
-    std::cout
-        << "============================"
-        << std::endl;
-
+    if (bits == recoveredBits)
+    {
+        std::cout
+            << "End-to-End Bit Recovery: PASS\n";
+    }
+    else
+    {
+        std::cout
+            << "End-to-End Bit Recovery: FAIL\n";
+    }
 
 
     return 0;
